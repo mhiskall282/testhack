@@ -27,8 +27,8 @@ const LOAN_COLLECTION = "loans";
 // Cloud configuration overrides
 const cloudConfig = {
     ...config,
-    // Override Redis host for cloud
-    redisHost: process.env.REDIS_CLOUD_URL || process.env.UPSTASH_REDIS_URL || config.redisHost,
+    // Override Redis host for cloud - prioritize Upstash
+    redisHost: process.env.UPSTASH_REDIS_URL || process.env.REDIS_CLOUD_URL || config.redisHost,
     // Override spy host for public endpoint - try multiple endpoints
     spyHost: process.env.SPY_HOST || "https://wormhole-v2-testnet-api.certus.one",
 };
@@ -78,12 +78,28 @@ async function findWorkingEndpoint(): Promise<string> {
 async function testRedisConnection(): Promise<void> {
     const Redis = require('ioredis');
     
+    // Parse Redis URL more robustly
+    let host, port, password;
+    
+    if (cloudConfig.redisHost.includes('upstash')) {
+        // Upstash Redis URL format: redis://username:password@host:port
+        const url = new URL(cloudConfig.redisHost);
+        host = url.hostname;
+        port = parseInt(url.port);
+        password = url.password;
+    } else {
+        // Standard Redis URL format
+        host = cloudConfig.redisHost.replace('redis://', '').split(':')[0];
+        port = parseInt(cloudConfig.redisHost.split(':')[2] || '6379');
+        password = process.env.REDIS_CLOUD_PASSWORD || process.env.UPSTASH_REDIS_TOKEN || undefined;
+    }
+    
     const redisConfig = {
-        host: cloudConfig.redisHost.replace('redis://', '').split(':')[0],
-        port: parseInt(cloudConfig.redisHost.split(':')[2] || '6379'),
-        password: process.env.REDIS_CLOUD_PASSWORD || process.env.UPSTASH_REDIS_TOKEN || undefined,
+        host,
+        port,
+        password,
         maxRetriesPerRequest: 5,
-        connectTimeout: 15000,
+        connectTimeout: 20000, // Increased timeout
         lazyConnect: true,
         enableOfflineQueue: true,
         enableReadyCheck: false,
@@ -95,8 +111,8 @@ async function testRedisConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
             redis.disconnect();
-            reject(new Error('Redis connection timeout after 15 seconds'));
-        }, 15000);
+            reject(new Error('Redis connection timeout after 20 seconds'));
+        }, 20000);
         
         redis.on('connect', () => {
             clearTimeout(timeout);
@@ -108,6 +124,12 @@ async function testRedisConnection(): Promise<void> {
             clearTimeout(timeout);
             redis.disconnect();
             reject(new Error(`Redis connection failed: ${error.message}`));
+        });
+        
+        redis.on('timeout', () => {
+            clearTimeout(timeout);
+            redis.disconnect();
+            reject(new Error('Redis connection timeout'));
         });
         
         redis.connect();
@@ -131,8 +153,17 @@ async function startRelayer(attempt: number = 1): Promise<void> {
         
         // Test Redis connection before starting relayer
         console.log("🧪 Testing Redis connection...");
-        await testRedisConnection();
-        console.log("✅ Redis connection successful!");
+        let redisAvailable = false;
+        
+        try {
+            await testRedisConnection();
+            console.log("✅ Redis connection successful!");
+            redisAvailable = true;
+        } catch (error: any) {
+            console.warn("⚠️ Redis connection failed:", error.message);
+            console.log("💡 Continuing without Redis - some features may be limited");
+            redisAvailable = false;
+        }
         
         // initialize relayer engine app, pass relevant config options
         const app = new StandardRelayerApp<StandardRelayerContext>(
@@ -238,6 +269,7 @@ async function startRelayer(attempt: number = 1): Promise<void> {
             console.log("3. Verify your private keys are set");
             console.log("4. Check Railway logs for more details");
             console.log("5. Try restarting the Railway deployment");
+            console.log("6. Consider using Upstash Redis as an alternative");
             
             // Exit gracefully
             process.exit(1);
