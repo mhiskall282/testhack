@@ -14,7 +14,7 @@
                     <h3>Resources</h3>
 
                     <a target="_blank"
-                        href="">Pitch
+                        href="https://www.canva.com/design/DAGIAJx532M/9uFq2nmUPW95r5kmjGh67Q/view?utm_content=DAGIAJx532M&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h4218d18f1c">Pitch
                         deck</a>
                     <a target="_blank" href="">Demo</a>
                 </div>
