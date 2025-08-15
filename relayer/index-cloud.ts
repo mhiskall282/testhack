@@ -29,8 +29,8 @@ const cloudConfig = {
     ...config,
     // Override Redis host for cloud
     redisHost: process.env.REDIS_CLOUD_URL || process.env.UPSTASH_REDIS_URL || config.redisHost,
-    // Override spy host for public endpoint
-    spyHost: process.env.SPY_HOST || "https://wormhole-v2-testnet-api.certus.one",
+                    // Override spy host for public endpoint
+                spyHost: process.env.SPY_HOST || "https://api.testnet.wormhole.com",
 };
 
 (async function main() {

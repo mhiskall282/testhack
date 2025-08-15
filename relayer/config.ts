@@ -4,7 +4,7 @@ dotenv.config();
 
 export const config = {
   // Wormhole Configuration
-  spyHost: process.env.SPY_HOST || "localhost:7073",
+  spyHost: process.env.SPY_HOST || "https://api.testnet.wormhole.com",
   redisHost: process.env.REDIS_HOST || "localhost:6379",
   
   // Ethereum Configuration (Avalanche Testnet)

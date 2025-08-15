@@ -279,7 +279,7 @@ ETH_PRIVATE_KEY=your_ethereum_private_key
 SUI_PRIVATE_KEY=your_sui_private_key
 REDIS_CLOUD_URL=your_redis_cloud_url
 REDIS_CLOUD_PASSWORD=your_redis_password
-SPY_HOST=https://wormhole-v2-testnet-api.certus.one
+SPY_HOST=https://api.testnet.wormhole.com
 ```
 
 ### **Why Railway for Relayer?**
