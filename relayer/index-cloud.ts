@@ -27,56 +27,29 @@ const LOAN_COLLECTION = "loans";
 // Cloud configuration overrides
 const cloudConfig = {
     ...config,
-    // Override Redis host for cloud - prioritize Upstash
-    redisHost: process.env.UPSTASH_REDIS_URL || process.env.REDIS_CLOUD_URL || config.redisHost,
     // Override spy host for public endpoint - try multiple endpoints
     spyHost: process.env.SPY_HOST || "https://wormhole-v2-testnet-api.certus.one",
 };
 
-// Function to check if we have Upstash REST credentials (call this dynamically)
+// Function to check if we have Upstash REST credentials
 function checkUpstashRest(): boolean {
-    const hasRest = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
-    console.log("🔍 Dynamic Upstash REST Check:");
-    console.log("UPSTASH_REDIS_REST_URL:", process.env.UPSTASH_REDIS_REST_URL ? "SET" : "NOT SET");
-    console.log("UPSTASH_REDIS_REST_TOKEN:", process.env.UPSTASH_REDIS_REST_TOKEN ? "SET" : "NOT SET");
-    console.log("hasUpstashRest:", hasRest);
-    return hasRest;
+    return !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 }
 
-// Helper function to parse Redis connection details safely
-function parseRedisConnection(redisUrl: string): { host: string; port: number; password?: string } {
-    try {
-        if (redisUrl.includes('upstash')) {
-            // Handle Upstash Redis URL format: redis://default:password@host:port
-            const url = new URL(redisUrl);
-            const host = url.hostname;
-            const port = parseInt(url.port) || 6379;
-            const password = url.password;
-            
-            return { host, port, password };
-        } else {
-            // Handle standard Redis URL format
-            const parts = redisUrl.replace('redis://', '').split('@');
-            if (parts.length === 2) {
-                // Format: username:password@host:port
-                const [auth, hostPort] = parts;
-                const [username, password] = auth.split(':');
-                const [host, portStr] = hostPort.split(':');
-                const port = parseInt(portStr) || 6379;
-                
-                return { host, port, password };
-            } else {
-                // Format: host:port
-                const [host, portStr] = redisUrl.replace('redis://', '').split(':');
-                const port = parseInt(portStr) || 6379;
-                
-                return { host, port };
-            }
-        }
-    } catch (error) {
-        console.warn('⚠️ Failed to parse Redis URL, using defaults:', error);
-        return { host: 'localhost', port: 6379 };
+// Upstash Redis REST client for reliable cloud operations
+let upstashRedis: any = null;
+
+// Initialize Upstash Redis client
+function initUpstashRedis() {
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        const { Redis } = require('@upstash/redis');
+        upstashRedis = new Redis({
+            url: process.env.UPSTASH_REDIS_REST_URL,
+            token: process.env.UPSTASH_REDIS_REST_TOKEN,
+        });
+        return true;
     }
+    return false;
 }
 
 // Fallback Wormhole endpoints if primary fails
@@ -120,81 +93,34 @@ async function findWorkingEndpoint(): Promise<string> {
     return wormholeEndpoints[0];
 }
 
-// Function to test Redis connection
-async function testRedisConnection(): Promise<void> {
+// Function to test Upstash Redis connection
+async function testUpstashConnection(): Promise<void> {
     try {
-        console.log("🔍 Redis Connection Test Debug:");
-        console.log("Checking UPSTASH_REDIS_REST_URL:", !!process.env.UPSTASH_REDIS_REST_URL);
-        console.log("Checking UPSTASH_REDIS_REST_TOKEN:", !!process.env.UPSTASH_REDIS_REST_TOKEN);
+        console.log("🔍 Upstash Redis Connection Test:");
+        console.log("UPSTASH_REDIS_REST_URL:", process.env.UPSTASH_REDIS_REST_URL ? "SET" : "NOT SET");
+        console.log("UPSTASH_REDIS_REST_TOKEN:", process.env.UPSTASH_REDIS_REST_TOKEN ? "SET" : "NOT SET");
         
-        // Use Upstash REST client if available
-        if (checkUpstashRest()) {
-            const { Redis } = require('@upstash/redis');
-            
-            const redis = new Redis({
-                url: process.env.UPSTASH_REDIS_REST_URL,
-                token: process.env.UPSTASH_REDIS_REST_TOKEN,
-            });
-            
-            // Test connection with a simple operation
-            await redis.set('test_connection', 'success');
-            const result = await redis.get('test_connection');
-            await redis.del('test_connection');
-            
-            if (result === 'success') {
-                console.log("✅ Upstash Redis REST connection successful!");
-                return;
-            } else {
-                throw new Error('Redis test operation failed');
-            }
-        } else if (!checkUpstashRest()) {
-            // Only try traditional Redis if we don't have Upstash REST
-            const Redis = require('ioredis');
-            
-            // Use the same parsing logic
-            const redisConfig = parseRedisConnection(cloudConfig.redisHost);
-            
-            const redis = new Redis({
-                ...redisConfig,
-                maxRetriesPerRequest: 5,
-                connectTimeout: 20000, // Increased timeout
-                lazyConnect: true,
-                enableOfflineQueue: true,
-                enableReadyCheck: false,
-            });
-            
-            return new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    redis.disconnect();
-                    reject(new Error('Redis connection timeout after 20 seconds'));
-                }, 20000);
-                
-                redis.on('connect', () => {
-                    clearTimeout(timeout);
-                    redis.disconnect();
-                    resolve();
-                });
-                
-                redis.on('error', (error: any) => {
-                    clearTimeout(timeout);
-                    redis.disconnect();
-                    reject(new Error(`Redis connection failed: ${error.message}`));
-                });
-                
-                redis.on('timeout', () => {
-                    clearTimeout(timeout);
-                    redis.disconnect();
-                    reject(new Error('Redis connection timeout'));
-                });
-                
-                redis.connect();
-            });
+        if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+            throw new Error('Upstash Redis credentials not configured');
+        }
+        
+        // Initialize Upstash Redis client
+        if (!initUpstashRedis()) {
+            throw new Error('Failed to initialize Upstash Redis client');
+        }
+        
+        // Test connection with a simple operation
+        await upstashRedis.set('test_connection', 'success');
+        const result = await upstashRedis.get('test_connection');
+        await upstashRedis.del('test_connection');
+        
+        if (result === 'success') {
+            console.log("✅ Upstash Redis REST connection successful!");
         } else {
-            // No Redis available
-            throw new Error('No Redis configuration available');
+            throw new Error('Upstash Redis test operation failed');
         }
     } catch (error: any) {
-        throw new Error(`Redis connection test failed: ${error.message}`);
+        throw new Error(`Upstash Redis connection test failed: ${error.message}`);
     }
 }
 
@@ -211,21 +137,20 @@ async function startRelayer(attempt: number = 1): Promise<void> {
         cloudConfig.spyHost = workingEndpoint;
         
         console.log(`🔗 Wormhole Guardian: ${cloudConfig.spyHost}`);
-        console.log(`🗄️  Redis: ${cloudConfig.redisHost}`);
-        console.log(`🔧 Redis Mode: ${checkUpstashRest() ? 'Upstash REST API' : 'Traditional Redis Protocol'}`);
+        console.log(`🔧 Redis: Upstash REST API Only`);
         
-        // Test Redis connection before starting relayer
-        console.log("🧪 Testing Redis connection...");
-        let redisAvailable = false;
+        // Test Upstash Redis connection before starting relayer
+        console.log("🧪 Testing Upstash Redis connection...");
+        let upstashAvailable = false;
         
         try {
-            await testRedisConnection();
-            console.log("✅ Redis connection successful!");
-            redisAvailable = true;
+            await testUpstashConnection();
+            console.log("✅ Upstash Redis connection successful!");
+            upstashAvailable = true;
         } catch (error: any) {
-            console.warn("⚠️ Redis connection failed:", error.message);
-            console.log("💡 Continuing without Redis - some features may be limited");
-            redisAvailable = false;
+            console.error("❌ Upstash Redis connection failed:", error.message);
+            console.log("💡 Upstash Redis is required for this relayer to function");
+            throw error;
         }
         
         // initialize relayer engine app, pass relevant config options
@@ -240,33 +165,9 @@ async function startRelayer(attempt: number = 1): Promise<void> {
                     }
                 },
                 spyEndpoint: cloudConfig.spyHost,
-                redis: (() => {
-                    console.log("🔍 Redis Configuration Debug:");
-                    console.log("redisAvailable:", redisAvailable);
-                    const hasUpstashRest = checkUpstashRest();
-                    console.log("hasUpstashRest:", hasUpstashRest);
-                    console.log("Condition (redisAvailable && !hasUpstashRest):", (redisAvailable && !hasUpstashRest));
-                    
-                    if (redisAvailable && !hasUpstashRest) {
-                        const redisConfig = parseRedisConnection(cloudConfig.redisHost);
-                        console.log(`🔧 Using Traditional Redis: ${redisConfig.host}:${redisConfig.port}`);
-                        return {
-                            ...redisConfig,
-                            maxRetriesPerRequest: 10,
-                            connectTimeout: 30000,
-                            lazyConnect: true,
-                            enableOfflineQueue: true,
-                            enableReadyCheck: false,
-                        };
-                    } else {
-                        if (hasUpstashRest) {
-                            console.log("🔧 Using Upstash REST API - no Redis protocol needed");
-                        } else {
-                            console.log("🔧 No Redis configuration available");
-                        }
-                        return undefined;
-                    }
-                })()
+                redis: undefined, // Using Upstash REST API instead of Redis protocol
+                // Note: The relayer will use Upstash Redis REST API for any Redis operations
+                // This eliminates the need for Redis protocol connections and prevents ECONNRESET errors
             },
         );
 
