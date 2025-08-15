@@ -76,64 +76,91 @@ async function findWorkingEndpoint(): Promise<string> {
 
 // Function to test Redis connection
 async function testRedisConnection(): Promise<void> {
-    const Redis = require('ioredis');
-    
-    // Parse Redis URL more robustly
-    let host, port, password;
-    
-    if (cloudConfig.redisHost.includes('upstash')) {
-        // Upstash Redis URL format: redis://username:password@host:port
-        const url = new URL(cloudConfig.redisHost);
-        host = url.hostname;
-        port = parseInt(url.port);
-        password = url.password;
-    } else {
-        // Standard Redis URL format
-        host = cloudConfig.redisHost.replace('redis://', '').split(':')[0];
-        port = parseInt(cloudConfig.redisHost.split(':')[2] || '6379');
-        password = process.env.REDIS_CLOUD_PASSWORD || process.env.UPSTASH_REDIS_TOKEN || undefined;
+    try {
+        // Use Upstash REST client if available
+        if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+            const { Redis } = require('@upstash/redis');
+            
+            const redis = new Redis({
+                url: process.env.UPSTASH_REDIS_REST_URL,
+                token: process.env.UPSTASH_REDIS_REST_TOKEN,
+            });
+            
+            // Test connection with a simple operation
+            await redis.set('test_connection', 'success');
+            const result = await redis.get('test_connection');
+            await redis.del('test_connection');
+            
+            if (result === 'success') {
+                console.log("✅ Upstash Redis REST connection successful!");
+                return;
+            } else {
+                throw new Error('Redis test operation failed');
+            }
+        } else {
+            // Fallback to traditional Redis connection
+            const Redis = require('ioredis');
+            
+            // Parse Redis URL more robustly
+            let host, port, password;
+            
+            if (cloudConfig.redisHost.includes('upstash')) {
+                // Upstash Redis URL format: redis://username:password@host:port
+                const url = new URL(cloudConfig.redisHost);
+                host = url.hostname;
+                port = parseInt(url.port);
+                password = url.password;
+            } else {
+                // Standard Redis URL format
+                host = cloudConfig.redisHost.replace('redis://', '').split(':')[0];
+                port = parseInt(cloudConfig.redisHost.split(':')[2] || '6379');
+                password = process.env.REDIS_CLOUD_PASSWORD || process.env.UPSTASH_REDIS_TOKEN || undefined;
+            }
+            
+            const redisConfig = {
+                host,
+                port,
+                password,
+                maxRetriesPerRequest: 5,
+                connectTimeout: 20000, // Increased timeout
+                lazyConnect: true,
+                enableOfflineQueue: true,
+                enableReadyCheck: false,
+                retryDelayOnFailover: 1000,
+            };
+            
+            const redis = new Redis(redisConfig);
+            
+            return new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    redis.disconnect();
+                    reject(new Error('Redis connection timeout after 20 seconds'));
+                }, 20000);
+                
+                redis.on('connect', () => {
+                    clearTimeout(timeout);
+                    redis.disconnect();
+                    resolve();
+                });
+                
+                redis.on('error', (error: any) => {
+                    clearTimeout(timeout);
+                    redis.disconnect();
+                    reject(new Error(`Redis connection failed: ${error.message}`));
+                });
+                
+                redis.on('timeout', () => {
+                    clearTimeout(timeout);
+                    redis.disconnect();
+                    reject(new Error('Redis connection timeout'));
+                });
+                
+                redis.connect();
+            });
+        }
+    } catch (error: any) {
+        throw new Error(`Redis connection test failed: ${error.message}`);
     }
-    
-    const redisConfig = {
-        host,
-        port,
-        password,
-        maxRetriesPerRequest: 5,
-        connectTimeout: 20000, // Increased timeout
-        lazyConnect: true,
-        enableOfflineQueue: true,
-        enableReadyCheck: false,
-        retryDelayOnFailover: 1000,
-    };
-    
-    const redis = new Redis(redisConfig);
-    
-    return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-            redis.disconnect();
-            reject(new Error('Redis connection timeout after 20 seconds'));
-        }, 20000);
-        
-        redis.on('connect', () => {
-            clearTimeout(timeout);
-            redis.disconnect();
-            resolve();
-        });
-        
-        redis.on('error', (error: any) => {
-            clearTimeout(timeout);
-            redis.disconnect();
-            reject(new Error(`Redis connection failed: ${error.message}`));
-        });
-        
-        redis.on('timeout', () => {
-            clearTimeout(timeout);
-            redis.disconnect();
-            reject(new Error('Redis connection timeout'));
-        });
-        
-        redis.connect();
-    });
 }
 
 // Function to start relayer with retry logic

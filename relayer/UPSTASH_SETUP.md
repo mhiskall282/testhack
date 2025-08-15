@@ -25,9 +25,13 @@ In your Railway dashboard, add these environment variables:
 REDIS_CLOUD_URL=
 REDIS_CLOUD_PASSWORD=
 
-# Add new Upstash variables
-UPSTASH_REDIS_URL=your_upstash_redis_url
-UPSTASH_REDIS_TOKEN=your_upstash_redis_token
+# Add new Upstash REST API variables (Recommended)
+UPSTASH_REDIS_REST_URL=https://open-titmouse-5593.upstash.io
+UPSTASH_REDIS_REST_TOKEN=ARXZAAImcDFmZWJhOGEzMGJhYWQ0YjY5YmZmZTcyMDhiN2VjOTllZHAxNTU5Mw
+
+# Alternative: Traditional Redis protocol (if needed)
+# UPSTASH_REDIS_URL=redis://default:ARXZAAImcDFmZWJhOGEzMGJhYWQ0YjY5YmZmZTcyMDhiN2VjOTllZHAxNTU5Mw@open-titmouse-5593.upstash.io:6379
+# UPSTASH_REDIS_TOKEN=ARXZAAImcDFmZWJhOGEzMGJhYWQ0YjY5YmZmZTcyMDhiN2VjOTllZHAxNTU5Mw
 ```
 
 ## **Step 3: Update .env File (if testing locally)**

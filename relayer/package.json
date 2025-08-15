@@ -23,6 +23,7 @@
     "@certusone/wormhole-sdk": "^0.10.15",
     "@mysten/bcs": "^0.11.1",
     "@mysten/sui.js": "^0.52.0",
+    "@upstash/redis": "^1.28.4",
     "@wormhole-foundation/relayer-engine": "^0.3.2",
     "dotenv": "^16.4.5",
     "firebase-admin": "^12.1.1",
