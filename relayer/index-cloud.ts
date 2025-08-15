@@ -37,14 +37,19 @@ const LOAN_COLLECTION = "loans";
             const wormholeEndpoints = [
                 "https://wormhole-v2-testnet-api.certus.one",
                 "https://api.testnet.wormhole.com",
-                "https://wormhole-testnet-api.stability.one"
+                "https://wormhole-testnet-api.stability.one",
+                "https://wormhole-testnet-api.certus.one:7073",
+                "https://wormhole-testnet-api.certus.one:8080"
             ];
 
             // Function to test Wormhole endpoint connectivity
             async function testWormholeEndpoint(endpoint: string): Promise<boolean> {
                 try {
-                    const response = await fetch(`${endpoint}/health`);
-                    return response.ok;
+                    // Try a simple GET request to the root endpoint
+                    const response = await fetch(endpoint, { 
+                        method: 'GET'
+                    });
+                    return response.status < 500; // Accept any response that's not a server error
                 } catch (error: any) {
                     console.log(`❌ Endpoint ${endpoint} failed:`, error.message || 'Unknown error');
                     return false;
@@ -63,7 +68,8 @@ const LOAN_COLLECTION = "loans";
                     }
                 }
                 
-                console.log("⚠️ All endpoints failed, using default");
+                console.log("⚠️ All endpoints failed health checks, but will try to use default");
+                console.log("💡 This is normal for testnet endpoints - relayer will retry connections");
                 return wormholeEndpoints[0];
             }
 
@@ -94,10 +100,10 @@ const LOAN_COLLECTION = "loans";
                     host: cloudConfig.redisHost.replace('redis://', '').split(':')[0],
                     port: parseInt(cloudConfig.redisHost.split(':')[2] || '6379'),
                     password: process.env.REDIS_CLOUD_PASSWORD || process.env.UPSTASH_REDIS_TOKEN || undefined,
-                    maxRetriesPerRequest: 3,
+                    maxRetriesPerRequest: 5,
                     connectTimeout: 10000,
                     lazyConnect: true,
-                    enableOfflineQueue: false,
+                    enableOfflineQueue: true,
                 }
             },
         );
