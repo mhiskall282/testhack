@@ -14,22 +14,22 @@
                     <h3>Resources</h3>
 
                     <a target="_blank"
-                        href="https://www.canva.com/design/DAGGblBNCjA/EmcgD9-GhLpwln53hwpkmw/view?utm_content=DAGGblBNCjA&utm_campaign=designshare&utm_medium=link&utm_source=editor">Pitch
+                        href="">Pitch
                         deck</a>
-                    <a target="_blank" href="https://youtu.be/rDJPmtL1cfA">Demo</a>
+                    <a target="_blank" href="">Demo</a>
                 </div>
 
                 <div class="page">
                     <h3>About</h3>
 
-                    <a target="_blank" href="https://www.linkedin.com/in/devarogundade/">LinkedIn</a>
+                    <a target="_blank" href="https://www.linkedin.com/in/johnokyere/">LinkedIn</a>
                 </div>
 
                 <div class="page">
                     <h3>Socials</h3>
 
                     <a target="_blank" href="https://x.com/myorbital_xyz/">X (formely twitter)</a>
-                    <a target="_blank" href="https://github.com/devarogundade/orbital/">GitHub</a>
+                    <a target="_blank" href="https://github.com/mhiskall282/testhack/">GitHub</a>
                 </div>
             </footer>
         </div>
