@@ -1,6 +1,6 @@
 # 🚀 Orbital Protocol - Cross-Chain Lending Platform
 
-> **Built for Sui Overflow Hackathon 2024** 🏆
+> **Built for ETH Enugu Hackathon 2025** 🏆
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mhiskall282/testhack)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -18,10 +18,11 @@ Think of it as a **DeFi bridge** that lets you:
 ## 🎯 **Hackathon Innovation**
 
 ### **Why This is Revolutionary**
-- **First-of-its-kind**: True cross-chain lending protocol on Sui
+- **First-of-its-kind**: True cross-chain lending protocol bridging Ethereum and Sui
 - **Wormhole Integration**: Leverages battle-tested cross-chain infrastructure
 - **Supra Oracle**: Real-time price feeds for accurate collateral valuation
 - **User Experience**: Seamless cross-chain operations in one interface
+- **Ethereum Focus**: Built for the Ethereum ecosystem with cross-chain expansion
 
 ### **Technical Achievements**
 - ✅ **Smart Contracts**: Deployed on Avalanche Testnet
@@ -232,11 +233,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 **Acknowledgments**
 
+- **Ethereum Foundation**: For the revolutionary blockchain platform
 - **Sui Foundation**: For the amazing Move language and blockchain
 - **Wormhole**: Cross-chain messaging infrastructure
 - **Supra Oracle**: Decentralized price feed solutions
 - **Vercel**: Hosting and deployment platform
-- **Sui Overflow Hackathon**: For the opportunity to build
+- **ETH Enugu Hackathon 2025**: For the opportunity to build
 
 ## 📞 **Contact**
 
@@ -254,6 +256,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**🚀 Built with ❤️ for the Sui Overflow Hackathon 2024**
+**🚀 Built with ❤️ for the ETH Enugu Hackathon 2025**
 
 *"Cross-chain lending is not just a feature - it's the future of DeFi"*
