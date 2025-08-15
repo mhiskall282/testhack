@@ -35,6 +35,7 @@ const LOAN_COLLECTION = "loans";
 
                         // Fallback Wormhole endpoints if primary fails
             const wormholeEndpoints = [
+                "https://testnet.query.wormhole.com",
                 "https://wormhole-v2-testnet-api.certus.one",
                 "https://api.testnet.wormhole.com",
                 "https://wormhole-testnet-api.stability.one",
