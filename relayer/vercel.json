@@ -12,11 +12,6 @@
       "dest": "dist/index-cloud.js"
     }
   ],
-  "functions": {
-    "dist/index-cloud.js": {
-      "maxDuration": 300
-    }
-  },
   "env": {
     "NODE_ENV": "production"
   }
