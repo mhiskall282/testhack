@@ -4,6 +4,7 @@ import type { Swiper as SwiperType } from 'swiper/types';
 import 'swiper/css';
 
 import { ref } from 'vue';
+import SuiWalletConnect from '@/components/SuiWalletConnect.vue';
 
 const swiper = ref<SwiperType | null>(null);
 
@@ -33,7 +34,7 @@ const getSwiper = (swiperInstance: SwiperType) => {
             <div class="announcement">
               <img class="annoucement_bg" src="/images/sui-overflow.webp" />
               <div class="announcement_content">
-                <h3>Sui Overflow: <br> Sui’s first global virtual hackathon.</h3>
+                <h3>Sui Overflow: <br> Sui's first global virtual hackathon.</h3>
                 <p>Orbital is participating.</p>
               </div>
             </div>
@@ -44,6 +45,13 @@ const getSwiper = (swiperInstance: SwiperType) => {
           <button @click="swiper?.slidePrev()">Prev</button>
           <button @click="swiper?.slideNext()">Next</button>
         </div>
+      </div>
+    </section>
+
+    <!-- Sui Wallet Connection Section -->
+    <section>
+      <div class="app_width">
+        <SuiWalletConnect />
       </div>
     </section>
 

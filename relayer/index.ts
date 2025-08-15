@@ -1,8 +1,4 @@
-import * as dotenv from "dotenv";
 import Web3 from 'web3';
-
-const BLOCK_EDEN_KEY = "yoWczNougaeiUqV41Y96";
-
 import {
     Environment,
     StandardRelayerApp,
@@ -15,60 +11,34 @@ import { TransactionBlock } from '@mysten/sui.js/transactions';
 import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import { getFullnodeUrl, SuiClient } from '@mysten/sui.js/client';
 
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-
-
-import serviceAccount from './serviceAccountKey.json';
-
-initializeApp({
-    credential: cert(serviceAccount as any)
-});
-
-const db = getFirestore();
-
-// Ethereum contract abi //
-import ethOrbitalAbi from "./abis/ethereum/orbital.json";
-
-
 import http from 'http';
 import { parseSuiOnBorrowHex } from "./utils/sui_on_borrow_parser";
 import { parseSuiOnRepayHex } from "./utils/sui_on_repay_parser";
 
-dotenv.config();
+// Import configuration
+import config from './config';
 
-// Firestore
+// Ethereum contract abi //
+import ethOrbitalAbi from "./abis/ethereum/orbital.json";
 
+// Configuration constants
 const LOAN_COLLECTION = "loans";
-
-// Orbital contract addresses //
-
-const ORBITAL_SUI = "0xabb45ed94ba7366b631bee1dce8ecb456508f66b66bf7135841d8d57d2026270";
-const ORBITAL_SUI_EMITTER = "0xb872e9e85580f1b53e1bdb4f7abccb5c523a99f47cc8876106387971781f19a0";
-const ORBITAL_AVAX = "0xDdA5368dA176762d1964B868101e6592fba25b15";
-
-// Cross chain method identifiers //
-const ON_BORROW_METHOD =
-    "0x4f4e5f424f52524f575f4d4554484f4400000000000000000000000000000000";
-
-const ON_REPAY_METHOD =
-    "0x4f4e5f52455041595f4d4554484f440000000000000000000000000000000000";
 
 (async function main() {
     // initialize relayer engine app, pass relevant config options
     const app = new StandardRelayerApp<StandardRelayerContext>(
         Environment.TESTNET,
         {
-            name: "OrbitalRelayer",
+            name: config.relayerName,
             missedVaaOptions: {
                 startingSequenceConfig: {
                     '21': BigInt(1), /* sui */
                     '6': BigInt(1) /* avalanche */
                 }
             },
-            spyEndpoint: process.env.SPY_HOST,
+            spyEndpoint: config.spyHost,
             redis: {
-                host: process.env.REDIS_HOST
+                host: config.redisHost
             }
         },
     );
@@ -77,8 +47,8 @@ const ON_REPAY_METHOD =
     // invoked on finding a VAA that matches the filter
     app.multiple(
         {
-            [CHAIN_ID_SUI]: ORBITAL_SUI_EMITTER,
-            [CHAIN_ID_AVAX]: ORBITAL_AVAX
+            [CHAIN_ID_SUI]: config.orbitalSuiEmitter,
+            [CHAIN_ID_AVAX]: config.orbitalAvax
         },
         async (ctx) => {
             const vaa = ctx.vaa;
@@ -97,7 +67,7 @@ const ON_REPAY_METHOD =
             // Check for emitter chain.
             if (vaa?.emitterChain == CHAIN_ID_SUI) {
                 // @dev Get the VAA method.
-                if (hexPayload.startsWith(removeTrailingZeros(ON_BORROW_METHOD))) {
+                if (hexPayload.startsWith(removeTrailingZeros(config.onBorrowMethod))) {
                     const params = parseSuiOnBorrowHex(hexPayload);
 
                     const tx = await signOnBorrowTransactionOnEth(
@@ -118,7 +88,7 @@ const ON_REPAY_METHOD =
                 }
 
                 // @dev Get the VAA method.
-                if (hexPayload.startsWith(removeTrailingZeros(ON_REPAY_METHOD))) {
+                if (hexPayload.startsWith(removeTrailingZeros(config.onRepayMethod))) {
                     const params = parseSuiOnRepayHex(hexPayload);
 
                     const tx = await signOnRepayTransactionOnEth(
@@ -134,7 +104,7 @@ const ON_REPAY_METHOD =
                 const web3 = new Web3();
 
                 // @dev Get the VAA method.
-                if (hexPayload.startsWith(removeTrailingZeros(ON_BORROW_METHOD))) {
+                if (hexPayload.startsWith(removeTrailingZeros(config.onBorrowMethod))) {
                     const params = web3.eth.abi.decodeParameters(
                         ['bytes32', 'bytes32', 'bytes32', 'bytes32', 'uint16', 'bytes32', 'bytes32', 'bytes32', 'uint256'],
                         hexPayload
@@ -156,7 +126,7 @@ const ON_REPAY_METHOD =
                 }
 
                 // @dev Get the VAA method.
-                if (hexPayload.startsWith(removeTrailingZeros(ON_REPAY_METHOD))) {
+                if (hexPayload.startsWith(removeTrailingZeros(config.onRepayMethod))) {
                     const params = web3.eth.abi.decodeParameters(
                         ['bytes32', 'bytes32', 'uint16', 'bytes32', 'bytes32'],
                         hexPayload
@@ -215,7 +185,7 @@ const ON_REPAY_METHOD =
     }).listen(port);
 
     console.log(`[server]: Server running at http://${hostname}:${port}`);
-    console.log('spy', process.env.SPY_HOST);
+    console.log('spy', config.spyHost);
 
 })();
 
@@ -238,7 +208,7 @@ async function signOnBorrowTransactionOnSui(
     txHash: string
 ): Promise<string | null> {
     // const rpcUrl = getFullnodeUrl('testnet');
-    const rpcUrl = `https://api.blockeden.xyz/sui/testnet/${BLOCK_EDEN_KEY}`;
+    const rpcUrl = `https://api.blockeden.xyz/sui/testnet/${config.blockEdenKey}`;
 
     const client = new SuiClient({ url: rpcUrl });
 
@@ -246,7 +216,7 @@ async function signOnBorrowTransactionOnSui(
         const txb = new TransactionBlock();
 
         txb.moveCall({
-            target: `${ORBITAL_SUI}::orbital::receive_on_borrow`,
+            target: `${config.orbitalSui}::orbital::receive_on_borrow`,
             arguments: [
                 txb.object(ownerCap),
                 txb.object(state),
@@ -264,7 +234,7 @@ async function signOnBorrowTransactionOnSui(
 
         // create signer object from private key.
         const keypair = Ed25519Keypair.deriveKeypair(
-            process.env.SUI_PRIVATE_KEY!!
+            config.suiPrivateKey
         );
 
         const { digest, effects } = await client.signAndExecuteTransactionBlock(
@@ -281,10 +251,8 @@ async function signOnBorrowTransactionOnSui(
 
                     const data = { loanId: newLoanId };
 
-                    // Add a new document in collection "cities" with ID 'LA'
-                    await db.collection(LOAN_COLLECTION).doc(txHash).set(
-                        data, { merge: true }
-                    );
+                    // TODO: Add loan tracking logic here
+                    console.log('New loan created:', newLoanId);
 
                     break;
                 }
@@ -307,7 +275,7 @@ async function signOnRepayTransactionOnSui(
     coinInType: string
 ): Promise<string | null> {
     // const rpcUrl = getFullnodeUrl('testnet');
-    const rpcUrl = `https://api.blockeden.xyz/sui/testnet/${BLOCK_EDEN_KEY}`;
+    const rpcUrl = `https://api.blockeden.xyz/sui/testnet/${config.blockEdenKey}`;
 
     const client = new SuiClient({ url: rpcUrl });
 
@@ -315,7 +283,7 @@ async function signOnRepayTransactionOnSui(
         const txb = new TransactionBlock();
 
         txb.moveCall({
-            target: `${ORBITAL_SUI}::orbital::receive_on_repay`,
+            target: `${config.orbitalSui}::orbital::receive_on_repay`,
             arguments: [
                 txb.object(ownerCap),
                 txb.object(state),
@@ -329,7 +297,7 @@ async function signOnRepayTransactionOnSui(
 
         // create signer object from private key.
         const keypair = Ed25519Keypair.deriveKeypair(
-            process.env.SUI_PRIVATE_KEY!!
+            config.suiPrivateKey
         );
 
         const result = await client.signAndExecuteTransactionBlock(
@@ -359,18 +327,16 @@ async function signOnBorrowTransactionOnEth(
 ) {
     const data = { loanId };
 
-    // Add a new document in collection "loans".
-    await db.collection(LOAN_COLLECTION).doc(txHash).set(
-        data, { merge: true }
-    );
+    // TODO: Add loan tracking logic here
+    console.log('Loan data:', data);
 
-    const web3 = new Web3('https://avalanche-fuji-c-chain-rpc.publicnode.com');
+    const web3 = new Web3(config.ethRpcUrl);
 
-    const orbital = new web3.eth.Contract(ethOrbitalAbi as any, ORBITAL_AVAX);
+    const orbital = new web3.eth.Contract(ethOrbitalAbi as any, config.orbitalAvax);
 
     // create signer object from private key.
     const ethSigner = web3.eth.accounts.privateKeyToAccount(
-        process.env.EVM_PRIVATE_KEY!!
+        config.ethPrivateKey
     );
 
     // add signer to web3.
@@ -420,13 +386,13 @@ async function signOnRepayTransactionOnEth(
     nonce: number,
     loanId: string
 ) {
-    const web3 = new Web3('https://avalanche-fuji-c-chain-rpc.publicnode.com');
+    const web3 = new Web3(config.ethRpcUrl);
 
-    const orbital = new web3.eth.Contract(ethOrbitalAbi as any, ORBITAL_AVAX);
+    const orbital = new web3.eth.Contract(ethOrbitalAbi as any, config.orbitalAvax);
 
     // create signer object from private key.
     const ethSigner = web3.eth.accounts.privateKeyToAccount(
-        process.env.EVM_PRIVATE_KEY!!
+        config.ethPrivateKey
     );
 
     // add signer to web3.
@@ -471,11 +437,11 @@ function getDefaultSUICoinOutType(): string {
 }
 
 function getDefaultEthTokenIn(): string {
-    return addressToBytes32("0x19Fa5d8485fE33ebcd41989CE76F20311a9E6F28");
+    return addressToBytes32("0xac8D0593eAF1527D89343CDE8Aa46ec261D09EA4"); // Updated USDT address
 }
 
 function getDefaultEthTokenOut(): string {
-    return addressToBytes32("0x65203C47fD727AB55974Ded62F01c53F7aB98fE4");
+    return addressToBytes32("0x95dBbcDC215407e039997589f5839dEB58827F49"); // Updated FUD address
 }
 
 function addressToBytes32(address: string): string {

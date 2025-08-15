@@ -6,6 +6,8 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.3",
+    "dotenv": "^17.2.1",
     "wormhole-solidity-sdk": "^0.0.4"
-  }
+  },
+  "type": "commonjs"
 }

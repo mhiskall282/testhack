@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_ETH_RPC_URL": "https://api.avax-test.network/ext/bc/C/rpc",
+    "VITE_ETH_CHAIN_ID": "43113",
+    "VITE_ETH_EXPLORER": "https://testnet.snowtrace.io",
+    "VITE_ORBITAL_CONTRACT": "0xE580dF77F7Bee058f640F56c0111F80f5D3df60E",
+    "VITE_PRICE_FEEDS_CONTRACT": "0x03f6dbAA4966c689Ff6138284b826d950eA6209C",
+    "VITE_FUD_TOKEN": "0x95dBbcDC215407e039997589f5839dEB58827F49",
+    "VITE_USDT_TOKEN": "0xac8D0593eAF1527D89343CDE8Aa46ec261D09EA4",
+    "VITE_SUI_RPC_URL": "https://fullnode.testnet.sui.io:443",
+    "VITE_SUI_CHAIN_ID": "21",
+    "VITE_ORBITAL_PACKAGE_ID": "0x90dc37f06e229842249b1916073ee81d2025149b9f53f30cff1a48ce5e0c8f3d",
+    "VITE_FAUCET_PACKAGE_ID": "0x715d18ef2a6b5d101de8e4a005d01fe14c99f2b38d1672c77c18ad52714544f8",
+    "VITE_WORMHOLE_BRIDGE": "0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C",
+    "VITE_WORMHOLE_CHAIN_ID_AVAX": "6",
+    "VITE_WORMHOLE_CHAIN_ID_SUI": "21"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+}

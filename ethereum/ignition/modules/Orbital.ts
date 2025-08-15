@@ -6,7 +6,7 @@ import FUDModule from "./FUD";
 import USDTModule from "./USDT";
 
 const OrbitalModule = buildModule("OrbitalModule", (m) => {
-  const account = m.getAccount(0);
+  const account = m.getAccount(1);
 
   const { priceFeeds } = m.useModule(PriceFeedsModule);
 

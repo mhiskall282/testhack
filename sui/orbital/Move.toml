@@ -3,15 +3,16 @@ name = "orbital"
 edition = "2024.beta"
 license = "UNLICENSED"
 authors = ["Ibrahim Arogundade (devarogundade@gmail.com)"]
+published-at = "0x90dc37f06e229842249b1916073ee81d2025149b9f53f30cff1a48ce5e0c8f3d"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
-Wormhole = { local = '../wormhole' }
-SupraOracle = { local = '../supra-svalue-feed-framework' }
+Wormhole = { git = "https://github.com/wormhole-foundation/wormhole.git", subdir = "sui/wormhole", rev = "main" }
+SupraOracle = { git = "https://github.com/supra-oss/supra-svalue-feed-framework.git", subdir = "sui", rev = "main" }
 
 [addresses]
 sui = "0x2"
-orbital = "0x0"
+orbital = "0x90dc37f06e229842249b1916073ee81d2025149b9f53f30cff1a48ce5e0c8f3d"
 
 # Named addresses will be accessible in Move as `@name`. They're also exported:
 # for example, `std = "0x1"` is exported by the Standard Library.
@@ -23,6 +24,6 @@ orbital = "0x0"
 # Local = { local = "../path/to/dev-build" }
 
 [dev-addresses]
-# The dev-addresses section allows overwriting named addresses for the `--test`
-# and `--dev` modes.
+# The dev-addresses section allows overwriting named addresses for the `--test` and
+# `--dev` modes.
 # alice = "0xB0B"

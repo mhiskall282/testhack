@@ -4,7 +4,7 @@ import FUDModule from "./FUD";
 import USDTModule from "./USDT";
 
 const PriceFeedsModule = buildModule("PriceFeedsModule", (m) => {
-  const account = m.getAccount(0);
+  const account = m.getAccount(1);
 
   const sValueFeed = "0xfA84fCE7aCa79c50216aac58b0669d48743a17a2";
 
