@@ -244,7 +244,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Developer**: [@mhiskall282](https://github.com/mhiskall282)
 - **Project**: [Orbital Protocol](https://github.com/mhiskall282/testhack)
-- **Email**: [devarogundade@gmail.com](mailto:devarogundade@gmail.com)
+- **Email**: [mhiskall123@gmail.com](mailto:mhiskall123@gmail.com)
 
 ## 🌟 **Hackathon Impact**
 
