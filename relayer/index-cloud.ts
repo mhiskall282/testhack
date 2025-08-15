@@ -74,6 +74,46 @@ async function findWorkingEndpoint(): Promise<string> {
     return wormholeEndpoints[0];
 }
 
+// Function to test Redis connection
+async function testRedisConnection(): Promise<void> {
+    const Redis = require('ioredis');
+    
+    const redisConfig = {
+        host: cloudConfig.redisHost.replace('redis://', '').split(':')[0],
+        port: parseInt(cloudConfig.redisHost.split(':')[2] || '6379'),
+        password: process.env.REDIS_CLOUD_PASSWORD || process.env.UPSTASH_REDIS_TOKEN || undefined,
+        maxRetriesPerRequest: 5,
+        connectTimeout: 15000,
+        lazyConnect: true,
+        enableOfflineQueue: true,
+        enableReadyCheck: false,
+        retryDelayOnFailover: 1000,
+    };
+    
+    const redis = new Redis(redisConfig);
+    
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            redis.disconnect();
+            reject(new Error('Redis connection timeout after 15 seconds'));
+        }, 15000);
+        
+        redis.on('connect', () => {
+            clearTimeout(timeout);
+            redis.disconnect();
+            resolve();
+        });
+        
+        redis.on('error', (error: any) => {
+            clearTimeout(timeout);
+            redis.disconnect();
+            reject(new Error(`Redis connection failed: ${error.message}`));
+        });
+        
+        redis.connect();
+    });
+}
+
 // Function to start relayer with retry logic
 async function startRelayer(attempt: number = 1): Promise<void> {
     const maxAttempts = 5;
@@ -88,6 +128,11 @@ async function startRelayer(attempt: number = 1): Promise<void> {
         
         console.log(`🔗 Wormhole Guardian: ${cloudConfig.spyHost}`);
         console.log(`🗄️  Redis: ${cloudConfig.redisHost}`);
+        
+        // Test Redis connection before starting relayer
+        console.log("🧪 Testing Redis connection...");
+        await testRedisConnection();
+        console.log("✅ Redis connection successful!");
         
         // initialize relayer engine app, pass relevant config options
         const app = new StandardRelayerApp<StandardRelayerContext>(
@@ -182,15 +227,17 @@ async function startRelayer(attempt: number = 1): Promise<void> {
         
         if (attempt < maxAttempts) {
             console.log(`🔄 Retrying in ${retryDelay/1000} seconds... (${attempt}/${maxAttempts})`);
+            console.log("💡 This might be due to temporary network issues or Redis being busy");
             await new Promise(resolve => setTimeout(resolve, retryDelay));
             return startRelayer(attempt + 1);
         } else {
             console.error("❌ Max retry attempts reached. Relayer failed to start.");
             console.log("\n💡 Troubleshooting:");
             console.log("1. Check your .env file has correct Redis credentials");
-            console.log("2. Ensure Redis Cloud is accessible");
+            console.log("2. Ensure Redis Cloud is accessible from Railway");
             console.log("3. Verify your private keys are set");
             console.log("4. Check Railway logs for more details");
+            console.log("5. Try restarting the Railway deployment");
             
             // Exit gracefully
             process.exit(1);
