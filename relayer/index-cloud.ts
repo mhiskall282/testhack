@@ -36,6 +36,12 @@ const cloudConfig = {
 // Check if we have Upstash REST credentials
 const hasUpstashRest = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 
+// Debug environment variables
+console.log("🔍 Environment Variables Debug:");
+console.log("UPSTASH_REDIS_REST_URL:", process.env.UPSTASH_REDIS_REST_URL ? "SET" : "NOT SET");
+console.log("UPSTASH_REDIS_REST_TOKEN:", process.env.UPSTASH_REDIS_REST_TOKEN ? "SET" : "NOT SET");
+console.log("hasUpstashRest:", hasUpstashRest);
+
 // Helper function to parse Redis connection details safely
 function parseRedisConnection(redisUrl: string): { host: string; port: number; password?: string } {
     try {
@@ -116,6 +122,10 @@ async function findWorkingEndpoint(): Promise<string> {
 // Function to test Redis connection
 async function testRedisConnection(): Promise<void> {
     try {
+        console.log("🔍 Redis Connection Test Debug:");
+        console.log("Checking UPSTASH_REDIS_REST_URL:", !!process.env.UPSTASH_REDIS_REST_URL);
+        console.log("Checking UPSTASH_REDIS_REST_TOKEN:", !!process.env.UPSTASH_REDIS_REST_TOKEN);
+        
         // Use Upstash REST client if available
         if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
             const { Redis } = require('@upstash/redis');
@@ -229,24 +239,31 @@ async function startRelayer(attempt: number = 1): Promise<void> {
                     }
                 },
                 spyEndpoint: cloudConfig.spyHost,
-                redis: (redisAvailable && !hasUpstashRest) ? (() => {
-                    const redisConfig = parseRedisConnection(cloudConfig.redisHost);
-                    console.log(`🔧 Using Traditional Redis: ${redisConfig.host}:${redisConfig.port}`);
-                    return {
-                        ...redisConfig,
-                        maxRetriesPerRequest: 10,
-                        connectTimeout: 30000,
-                        lazyConnect: true,
-                        enableOfflineQueue: true,
-                        enableReadyCheck: false,
-                    };
-                })() : (() => {
-                    if (hasUpstashRest) {
-                        console.log("🔧 Using Upstash REST API - no Redis protocol needed");
+                redis: (() => {
+                    console.log("🔍 Redis Configuration Debug:");
+                    console.log("redisAvailable:", redisAvailable);
+                    console.log("hasUpstashRest:", hasUpstashRest);
+                    console.log("Condition (redisAvailable && !hasUpstashRest):", (redisAvailable && !hasUpstashRest));
+                    
+                    if (redisAvailable && !hasUpstashRest) {
+                        const redisConfig = parseRedisConnection(cloudConfig.redisHost);
+                        console.log(`🔧 Using Traditional Redis: ${redisConfig.host}:${redisConfig.port}`);
+                        return {
+                            ...redisConfig,
+                            maxRetriesPerRequest: 10,
+                            connectTimeout: 30000,
+                            lazyConnect: true,
+                            enableOfflineQueue: true,
+                            enableReadyCheck: false,
+                        };
                     } else {
-                        console.log("🔧 No Redis configuration available");
+                        if (hasUpstashRest) {
+                            console.log("🔧 Using Upstash REST API - no Redis protocol needed");
+                        } else {
+                            console.log("🔧 No Redis configuration available");
+                        }
+                        return undefined;
                     }
-                    return undefined;
                 })()
             },
         );
