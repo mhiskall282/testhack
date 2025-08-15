@@ -33,6 +33,9 @@ const cloudConfig = {
     spyHost: process.env.SPY_HOST || "https://wormhole-v2-testnet-api.certus.one",
 };
 
+// Check if we have Upstash REST credentials
+const hasUpstashRest = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+
 // Helper function to parse Redis connection details safely
 function parseRedisConnection(redisUrl: string): { host: string; port: number; password?: string } {
     try {
@@ -133,8 +136,8 @@ async function testRedisConnection(): Promise<void> {
             } else {
                 throw new Error('Redis test operation failed');
             }
-        } else {
-            // Fallback to traditional Redis connection
+        } else if (!hasUpstashRest) {
+            // Only try traditional Redis if we don't have Upstash REST
             const Redis = require('ioredis');
             
             // Use the same parsing logic
@@ -175,6 +178,9 @@ async function testRedisConnection(): Promise<void> {
                 
                 redis.connect();
             });
+        } else {
+            // No Redis available
+            throw new Error('No Redis configuration available');
         }
     } catch (error: any) {
         throw new Error(`Redis connection test failed: ${error.message}`);
@@ -195,6 +201,7 @@ async function startRelayer(attempt: number = 1): Promise<void> {
         
         console.log(`🔗 Wormhole Guardian: ${cloudConfig.spyHost}`);
         console.log(`🗄️  Redis: ${cloudConfig.redisHost}`);
+        console.log(`🔧 Redis Mode: ${hasUpstashRest ? 'Upstash REST API' : 'Traditional Redis Protocol'}`);
         
         // Test Redis connection before starting relayer
         console.log("🧪 Testing Redis connection...");
@@ -222,8 +229,9 @@ async function startRelayer(attempt: number = 1): Promise<void> {
                     }
                 },
                 spyEndpoint: cloudConfig.spyHost,
-                redis: redisAvailable ? (() => {
+                redis: (redisAvailable && !hasUpstashRest) ? (() => {
                     const redisConfig = parseRedisConnection(cloudConfig.redisHost);
+                    console.log(`🔧 Using Traditional Redis: ${redisConfig.host}:${redisConfig.port}`);
                     return {
                         ...redisConfig,
                         maxRetriesPerRequest: 10,
@@ -232,7 +240,14 @@ async function startRelayer(attempt: number = 1): Promise<void> {
                         enableOfflineQueue: true,
                         enableReadyCheck: false,
                     };
-                })() : undefined
+                })() : (() => {
+                    if (hasUpstashRest) {
+                        console.log("🔧 Using Upstash REST API - no Redis protocol needed");
+                    } else {
+                        console.log("🔧 No Redis configuration available");
+                    }
+                    return undefined;
+                })()
             },
         );
 
