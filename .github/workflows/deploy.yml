@@ -1,0 +1,72 @@
+name: 🚀 Deploy Orbital Protocol
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy-ui:
+    runs-on: ubuntu-latest
+    name: Deploy UI to Vercel
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+      
+      - name: Install UI dependencies
+        run: |
+          cd ui
+          npm ci
+      
+      - name: Build UI
+        run: |
+          cd ui
+          npm run build
+      
+      - name: Deploy UI to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.UI_PROJECT_ID }}
+          working-directory: ./ui
+          vercel-args: '--prod'
+
+  deploy-relayer:
+    runs-on: ubuntu-latest
+    name: Deploy Relayer to Vercel
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: relayer/package-lock.json
+      
+      - name: Install Relayer dependencies
+        run: |
+          cd relayer
+          npm ci
+      
+      - name: Build Relayer
+        run: |
+          cd relayer
+          npm run build
+      
+      - name: Deploy Relayer to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.RELAYER_PROJECT_ID }}
+          working-directory: ./relayer
+          vercel-args: '--prod'
