@@ -34,7 +34,7 @@ const getSwiper = (swiperInstance: SwiperType) => {
             <div class="announcement">
               <img class="annoucement_bg" src="/images/sui-overflow.webp" />
               <div class="announcement_content">
-                <h3>Sui Overflow: <br> Sui's first global virtual hackathon.</h3>
+                <h3>ETH Enugu: <br>Bringing 042 and South East on Chain Hackathon.</h3>
                 <p>Orbital is participating.</p>
               </div>
             </div>
@@ -90,7 +90,7 @@ const getSwiper = (swiperInstance: SwiperType) => {
     <section>
       <div class="app_width">
         <div class="birth_container">
-          <a href="https://youtu.be/rDJPmtL1cfA" target="_blank" rel="noopener noreferrer">
+          <a href="" target="_blank" rel="noopener noreferrer">
             <div class="birth">
               <img src="/images/birth.png" alt="" srcset="">
               <button>▶️ Watch Demo</button>
