@@ -24,6 +24,10 @@ Think of it as a **DeFi bridge** that lets you:
 - **User Experience**: Seamless cross-chain operations in one interface
 - **Ethereum Focus**: Built for the Ethereum ecosystem with cross-chain expansion
 
+  ## FLOW
+
+![orbital drawio](https://github.com/devarogundade/orbital/assets/81397790/8fdba173-0643-4427-a1f8-8573b3ef3ea8)
+
 ### **Technical Achievements**
 - ✅ **Smart Contracts**: Deployed on Avalanche Testnet
 - ✅ **Sui Move**: Native Sui blockchain integration
