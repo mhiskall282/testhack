@@ -24,21 +24,60 @@ import ethOrbitalAbi from "./abis/ethereum/orbital.json";
 // Configuration constants
 const LOAN_COLLECTION = "loans";
 
-// Cloud configuration overrides
-const cloudConfig = {
-    ...config,
-    // Override Redis host for cloud
-    redisHost: process.env.REDIS_CLOUD_URL || process.env.UPSTASH_REDIS_URL || config.redisHost,
-                    // Override spy host for public endpoint
-                spyHost: process.env.SPY_HOST || "https://api.testnet.wormhole.com",
-};
+            // Cloud configuration overrides
+            const cloudConfig = {
+                ...config,
+                // Override Redis host for cloud
+                redisHost: process.env.REDIS_CLOUD_URL || process.env.UPSTASH_REDIS_URL || config.redisHost,
+                // Override spy host for public endpoint - try multiple endpoints
+                spyHost: process.env.SPY_HOST || "https://wormhole-v2-testnet-api.certus.one",
+            };
 
-(async function main() {
-    console.log("🚀 Starting Cloud Relayer...");
-    console.log(`🔗 Wormhole Guardian: ${cloudConfig.spyHost}`);
-    console.log(`🗄️  Redis: ${cloudConfig.redisHost}`);
-    
-    try {
+                        // Fallback Wormhole endpoints if primary fails
+            const wormholeEndpoints = [
+                "https://wormhole-v2-testnet-api.certus.one",
+                "https://api.testnet.wormhole.com",
+                "https://wormhole-testnet-api.stability.one"
+            ];
+
+            // Function to test Wormhole endpoint connectivity
+            async function testWormholeEndpoint(endpoint: string): Promise<boolean> {
+                try {
+                    const response = await fetch(`${endpoint}/health`);
+                    return response.ok;
+                } catch (error: any) {
+                    console.log(`❌ Endpoint ${endpoint} failed:`, error.message || 'Unknown error');
+                    return false;
+                }
+            }
+
+            // Function to find working Wormhole endpoint
+            async function findWorkingEndpoint(): Promise<string> {
+                console.log("🔍 Testing Wormhole endpoints...");
+                
+                for (const endpoint of wormholeEndpoints) {
+                    console.log(`🧪 Testing: ${endpoint}`);
+                    if (await testWormholeEndpoint(endpoint)) {
+                        console.log(`✅ Found working endpoint: ${endpoint}`);
+                        return endpoint;
+                    }
+                }
+                
+                console.log("⚠️ All endpoints failed, using default");
+                return wormholeEndpoints[0];
+            }
+
+                        (async function main() {
+                console.log("🚀 Starting Cloud Relayer...");
+                
+                // Find working Wormhole endpoint
+                const workingEndpoint = await findWorkingEndpoint();
+                cloudConfig.spyHost = workingEndpoint;
+                
+                console.log(`🔗 Wormhole Guardian: ${cloudConfig.spyHost}`);
+                console.log(`🗄️  Redis: ${cloudConfig.redisHost}`);
+                
+                try {
         // initialize relayer engine app, pass relevant config options
         const app = new StandardRelayerApp<StandardRelayerContext>(
             Environment.TESTNET,
@@ -55,6 +94,10 @@ const cloudConfig = {
                     host: cloudConfig.redisHost.replace('redis://', '').split(':')[0],
                     port: parseInt(cloudConfig.redisHost.split(':')[2] || '6379'),
                     password: process.env.REDIS_CLOUD_PASSWORD || process.env.UPSTASH_REDIS_TOKEN || undefined,
+                    maxRetriesPerRequest: 3,
+                    connectTimeout: 10000,
+                    lazyConnect: true,
+                    enableOfflineQueue: false,
                 }
             },
         );
