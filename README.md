@@ -123,6 +123,29 @@ orbital-protocol/
 └── 📁 docs/               # Documentation
 ```
 
+## 🚀 **Deployment Strategy**
+
+### **Why Different Platforms?**
+- **UI (Vercel)**: Perfect for static frontend applications
+- **Relayer (Railway/Render)**: Better for long-running Node.js services
+- **Smart Contracts**: Already deployed on blockchain testnets
+
+### **Deployment Options**
+
+#### **Frontend UI - Vercel** ✅
+- **Platform**: [vercel.com](https://vercel.com)
+- **Type**: Static site hosting
+- **Perfect for**: Vue.js frontend applications
+
+#### **Relayer Service - Railway** ✅
+- **Platform**: [railway.app](https://railway.app)
+- **Type**: Node.js service hosting
+- **Perfect for**: Long-running relay services
+
+#### **Smart Contracts - Blockchain** ✅
+- **Ethereum**: Already deployed on Avalanche testnet
+- **Sui**: Already deployed on Sui testnet
+
 ## 🚀 **Quick Start**
 
 ### **Prerequisites**
@@ -170,7 +193,7 @@ npm run dev
 ## 🌐 **Live Demo**
 
 - **Frontend**: [orbital-protocol-ui.vercel.app](https://orbital-protocol-ui.vercel.app)
-- **Relayer**: [orbital-protocol-relayer.vercel.app](https://orbital-protocol-relayer.vercel.app)
+- **Relayer**: [orbital-protocol-relayer.railway.app](https://orbital-protocol-relayer.railway.app) *(Deployed on Railway)*
 - **Ethereum**: [Avalanche Testnet](https://testnet.snowtrace.io)
 - **Sui**: [Sui Testnet Explorer](https://suiexplorer.com)
 
@@ -226,6 +249,45 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - **Frontend Features**: UI/UX improvements
 - **Testing**: Comprehensive test coverage
 - **Documentation**: Code and user guides
+
+## 🚀 **Deployment Guide**
+
+### **Frontend UI - Vercel**
+1. **Go to [vercel.com](https://vercel.com)**
+2. **Import your GitHub repository**: `mhiskall282/testhack`
+3. **Set root directory**: `ui`
+4. **Framework**: `Vue.js`
+5. **Build command**: `npm run build`
+6. **Output directory**: `dist`
+7. **Deploy!**
+
+### **Relayer Service - Railway** *(Recommended)*
+1. **Go to [railway.app](https://railway.app)**
+2. **Sign in with GitHub**
+3. **Click "New Project"**
+4. **Select "Deploy from GitHub repo"**
+5. **Choose your repository**: `mhiskall282/testhack`
+6. **Set root directory**: `relayer`
+7. **Build command**: `npm run build`
+8. **Start command**: `node dist/index-cloud.js`
+9. **Add environment variables** (see below)
+10. **Deploy!**
+
+### **Environment Variables for Relayer**
+```bash
+ETH_PRIVATE_KEY=your_ethereum_private_key
+SUI_PRIVATE_KEY=your_sui_private_key
+REDIS_CLOUD_URL=your_redis_cloud_url
+REDIS_CLOUD_PASSWORD=your_redis_password
+SPY_HOST=https://wormhole-v2-testnet-api.certus.one
+```
+
+### **Why Railway for Relayer?**
+- ✅ **Long-running services** (not serverless)
+- ✅ **WebSocket support** for Wormhole connections
+- ✅ **Continuous operation** needed for cross-chain messaging
+- ✅ **Better pricing** for Node.js services
+- ✅ **Easy environment variable management**
 
 ## 📄 **License**
 
