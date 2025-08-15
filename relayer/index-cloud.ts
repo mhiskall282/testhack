@@ -33,6 +33,42 @@ const cloudConfig = {
     spyHost: process.env.SPY_HOST || "https://wormhole-v2-testnet-api.certus.one",
 };
 
+// Helper function to parse Redis connection details safely
+function parseRedisConnection(redisUrl: string): { host: string; port: number; password?: string } {
+    try {
+        if (redisUrl.includes('upstash')) {
+            // Handle Upstash Redis URL format: redis://default:password@host:port
+            const url = new URL(redisUrl);
+            const host = url.hostname;
+            const port = parseInt(url.port) || 6379;
+            const password = url.password;
+            
+            return { host, port, password };
+        } else {
+            // Handle standard Redis URL format
+            const parts = redisUrl.replace('redis://', '').split('@');
+            if (parts.length === 2) {
+                // Format: username:password@host:port
+                const [auth, hostPort] = parts;
+                const [username, password] = auth.split(':');
+                const [host, portStr] = hostPort.split(':');
+                const port = parseInt(portStr) || 6379;
+                
+                return { host, port, password };
+            } else {
+                // Format: host:port
+                const [host, portStr] = redisUrl.replace('redis://', '').split(':');
+                const port = parseInt(portStr) || 6379;
+                
+                return { host, port };
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Failed to parse Redis URL, using defaults:', error);
+        return { host: 'localhost', port: 6379 };
+    }
+}
+
 // Fallback Wormhole endpoints if primary fails
 const wormholeEndpoints = [
     "https://testnet.query.wormhole.com",
@@ -101,35 +137,17 @@ async function testRedisConnection(): Promise<void> {
             // Fallback to traditional Redis connection
             const Redis = require('ioredis');
             
-            // Parse Redis URL more robustly
-            let host, port, password;
+            // Use the same parsing logic
+            const redisConfig = parseRedisConnection(cloudConfig.redisHost);
             
-            if (cloudConfig.redisHost.includes('upstash')) {
-                // Upstash Redis URL format: redis://username:password@host:port
-                const url = new URL(cloudConfig.redisHost);
-                host = url.hostname;
-                port = parseInt(url.port);
-                password = url.password;
-            } else {
-                // Standard Redis URL format
-                host = cloudConfig.redisHost.replace('redis://', '').split(':')[0];
-                port = parseInt(cloudConfig.redisHost.split(':')[2] || '6379');
-                password = process.env.REDIS_CLOUD_PASSWORD || process.env.UPSTASH_REDIS_TOKEN || undefined;
-            }
-            
-            const redisConfig = {
-                host,
-                port,
-                password,
+            const redis = new Redis({
+                ...redisConfig,
                 maxRetriesPerRequest: 5,
                 connectTimeout: 20000, // Increased timeout
                 lazyConnect: true,
                 enableOfflineQueue: true,
                 enableReadyCheck: false,
-                retryDelayOnFailover: 1000,
-            };
-            
-            const redis = new Redis(redisConfig);
+            });
             
             return new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
@@ -204,16 +222,17 @@ async function startRelayer(attempt: number = 1): Promise<void> {
                     }
                 },
                 spyEndpoint: cloudConfig.spyHost,
-                redis: {
-                    host: cloudConfig.redisHost.replace('redis://', '').split(':')[0],
-                    port: parseInt(cloudConfig.redisHost.split(':')[2] || '6379'),
-                    password: process.env.REDIS_CLOUD_PASSWORD || process.env.UPSTASH_REDIS_TOKEN || undefined,
-                    maxRetriesPerRequest: 10,
-                    connectTimeout: 30000,
-                    lazyConnect: true,
-                    enableOfflineQueue: true,
-                    enableReadyCheck: false,
-                }
+                redis: redisAvailable ? (() => {
+                    const redisConfig = parseRedisConnection(cloudConfig.redisHost);
+                    return {
+                        ...redisConfig,
+                        maxRetriesPerRequest: 10,
+                        connectTimeout: 30000,
+                        lazyConnect: true,
+                        enableOfflineQueue: true,
+                        enableReadyCheck: false,
+                    };
+                })() : undefined
             },
         );
 
